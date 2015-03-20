@@ -98,7 +98,7 @@ static void keyScheduleCore (uint8_t *input, int iteration) {
   input[0] = input[0] ^ getRconValue (iteration);
 }
 
-static void expandKey (uint8_t *key, keySize_t keySize, uint8_t *expandedKey) {
+void expandKey (uint8_t *key, keySize_t keySize, uint8_t *expandedKey) {
   uint8_t temp[INPUT_SIZE];
   int currentSize     = keySize;
   int rconIteration   = 1;
@@ -110,7 +110,6 @@ static void expandKey (uint8_t *key, keySize_t keySize, uint8_t *expandedKey) {
   }
 
   while (currentSize < expandedKeySize) {
-
     for (int i = 0; i < INPUT_SIZE; i++) {
       temp[i] = expandedKey[currentSize - INPUT_SIZE + i];
     }
@@ -133,6 +132,7 @@ static void expandKey (uint8_t *key, keySize_t keySize, uint8_t *expandedKey) {
     }
   }
 }
+
 static void subBytes (uint8_t state[STATE_SIZE]) {
     int i;
     for (i = 0; i < STATE_SIZE; i++) {
@@ -157,14 +157,91 @@ uint8_t gMul (uint8_t a, uint8_t b) {
       p ^= a;
     hi_bit_set = (a & 0x80);
     a <<= 1;
-    if(hi_bit_set == 0x80)
+    if (hi_bit_set == 0x80)
       a ^= 0x1b;
     b >>= 1;
   }
   return p;
 }
 
-int main (int argc, char **argv) {
+void mixColumn (uint8_t column[4]) {
+  uint8_t mixPoly[4] = {0x03, 0x01, 0x01, 0x02};
+  uint8_t temp[4];
+
+  for (int i = 0; i < 4; i++)
+    temp[i] = column[i];
+
+  for (int i = 3; i >= 0; i--) {
+    column[i] = gMul (temp[0], mixPoly[0]);
+    for (int j = 1; j < 4; j++)
+      column[i] ^= gMul (temp[j], mixPoly[j]);
+    rotate (mixPoly);
+  }
+}
+
+void mixColumns (uint8_t state[STATE_SIZE]) {
+  uint8_t column[4];
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      column[j] = state[4*j+i];
+    }
+    mixColumn (column);
+    for (int j = 0; j < 4; j++) {
+      state[4*j+i] = column[j];
+    }
+  }
+}
+
+static void createRoundKey (uint8_t  *expandedKey, uint8_t roundKey[STATE_SIZE]) {
+    int i;
+    for (i = 0; i < STATE_SIZE; i++) {
+      roundKey[i] = expandedKey[i];
+      //printf ("%x", roundKey[i]);
+    }
+    // printf ("\n");
+}
+
+static void addRoundKey (uint8_t state[STATE_SIZE], uint8_t roundKey[STATE_SIZE], uint8_t *expandedKey, int shiftKey) {
+  createRoundKey (expandedKey, roundKey);
+  if (shiftKey)
+    shiftRows(roundKey);
+
+  for(int i = 0; i < STATE_SIZE; i++) {
+    state[i] ^= roundKey[i];
+  }
+
+}
+//66e94bd4ef8a2c3b884cfa59ca342b2e
+void aes_main (uint8_t state[STATE_SIZE], uint8_t *expandedKey) {
+  uint8_t roundKey[STATE_SIZE];
+
+  for (int i = 1; i < 10; i++) {
+    shiftRows(state);
+    addRoundKey (state, roundKey, expandedKey + 16 * (i-1), 1);
+    subBytes(state);
+    mixColumns(state);
+  }
+
+  printf ("\n\n");
+  shiftRows(state);
+  addRoundKey(state, roundKey, expandedKey + 144, 1);
+
+  subBytes(state);
+  addRoundKey(state, roundKey, expandedKey + 160, 0);
+}
+
+void aes_encrypt (uint8_t input[STATE_SIZE], uint8_t output[STATE_SIZE], uint8_t *key,
+		  keySize_t keySize) {
+  int expandedKeySize = (keySize == SIZE_16 ? 176 : (keySize == SIZE_24 ? 208 : 240));
+  uint8_t expandedKey[expandedKeySize];
+
+  expandKey (key, keySize, expandedKey);
+  aes_main (input, expandedKey);
+
+  output = input;
+}
+/*int main (int argc, char **argv) {
   keySize_t keySize = SIZE_32;
   int expandedKeySize = (keySize == SIZE_16 ? 176 : (keySize == SIZE_24 ? 208 : 240));
   uint8_t expandedKey[expandedKeySize];
@@ -188,4 +265,4 @@ int main (int argc, char **argv) {
   }
   printf ("\n");
   return EXIT_SUCCESS;
-}
+  }*/
