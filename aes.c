@@ -67,6 +67,9 @@ static const uint8_t rcon[255] = {
   0x66, 0xcc, 0x83, 0x1d, 0x3a, 0x74, 0xe8, 0xcb
 };
 
+static uint8_t tBoxes[10][16][255];
+static uint8_t tyBoxes[9][16][255];
+
 static uint8_t getSBoxValue (uint8_t num) {
   return sbox[num];
 }
@@ -197,49 +200,103 @@ static void createRoundKey (uint8_t  *expandedKey, uint8_t roundKey[STATE_SIZE])
     int i;
     for (i = 0; i < STATE_SIZE; i++) {
       roundKey[i] = expandedKey[i];
-      //printf ("%x", roundKey[i]);
     }
-    // printf ("\n");
 }
 
 static void addRoundKey (uint8_t state[STATE_SIZE], uint8_t roundKey[STATE_SIZE], uint8_t *expandedKey, int shiftKey) {
+  uint8_t roundKey2[STATE_SIZE];
   createRoundKey (expandedKey, roundKey);
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      roundKey2[(i+(j*4))] = roundKey[(i*4)+j];
+    }
+  }
   if (shiftKey)
-    shiftRows(roundKey);
+    shiftRows(roundKey2);
 
   for(int i = 0; i < STATE_SIZE; i++) {
-    state[i] ^= roundKey[i];
+    state[i] ^= roundKey2[i];
   }
 
+  printf ("\n");
 }
-//66e94bd4ef8a2c3b884cfa59ca342b2e
+
 void aes_main (uint8_t state[STATE_SIZE], uint8_t *expandedKey) {
   uint8_t roundKey[STATE_SIZE];
+  addRoundKey (state, roundKey, expandedKey, 0);
+  for (int i = 1; i < 10; i++) {
+    subBytes(state);
+    shiftRows(state);
+    mixColumns(state);
+    addRoundKey (state, roundKey, expandedKey + 16*i, 0);
+  }
+  subBytes(state);
+  shiftRows(state);
+  addRoundKey(state, roundKey, expandedKey + 160, 0);
 
+}
+void aes_main2 (uint8_t state[STATE_SIZE], uint8_t *expandedKey) {
+  uint8_t roundKey[STATE_SIZE];
   for (int i = 1; i < 10; i++) {
     shiftRows(state);
     addRoundKey (state, roundKey, expandedKey + 16 * (i-1), 1);
     subBytes(state);
     mixColumns(state);
   }
-
-  printf ("\n\n");
   shiftRows(state);
   addRoundKey(state, roundKey, expandedKey + 144, 1);
-
   subBytes(state);
   addRoundKey(state, roundKey, expandedKey + 160, 0);
+  for (int i = 0; i < STATE_SIZE; i++)
+    printf ("%x%c", state[i], (i%4 == 3) ? '\n':' ');
+  printf ("\n\n");
 }
 
-void aes_encrypt (uint8_t input[STATE_SIZE], uint8_t output[STATE_SIZE], uint8_t *key,
+void aes_table (uint8_t state[STATE_SIZE], uint8_t *expandedKey) {
+  uint8_t roundKey[STATE_SIZE];
+  uint8_t roundKey2[STATE_SIZE];
+
+  for (int i = 1; i <= 1; i++) {
+    createRoundKey (expandedKey + 16*(i-1), roundKey);
+    shiftRows(roundKey);
+    for (int j = 0; j < 16; j++) {
+      printf ("\n");
+      for (int k = 0; k < 256; k++) {
+	tBoxes[i-1][j][k] = getSBoxValue(k^roundKey[j]);
+	printf (" %x", tBoxes[i-1][j][k]);
+	if ((k+1)%16 == 0)
+	  printf ("\n");
+	if (i == 10) {
+	  createRoundKey (expandedKey + 160, roundKey2);
+	  tBoxes[i-1][j][k] ^= roundKey2[j];
+	}
+      }
+    }
+  }
+  for (int j = 0; j < 16; j++) {
+    for (int k = 0; k < 255; k++) {
+    }
+  }
+}
+void aes_encrypt (uint8_t input[STATE_SIZE], uint8_t output[STATE_SIZE], uint8_t *inputKey,
 		  keySize_t keySize) {
   int expandedKeySize = (keySize == SIZE_16 ? 176 : (keySize == SIZE_24 ? 208 : 240));
   uint8_t expandedKey[expandedKeySize];
+  uint8_t state[STATE_SIZE];
+  uint8_t key[16];
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      state[(i+(j*4))] = input[(i*4)+j];
+    }
+  }
+  expandKey (inputKey, keySize, expandedKey);
 
-  expandKey (key, keySize, expandedKey);
-  aes_main (input, expandedKey);
-
-  output = input;
+  aes_main2 (state, expandedKey);
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++)
+      output[(i*4)+j] = state[(i+(j*4))];
+  }
 }
 /*int main (int argc, char **argv) {
   keySize_t keySize = SIZE_32;
