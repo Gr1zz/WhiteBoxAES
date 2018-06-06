@@ -7,16 +7,19 @@ void aes_128_table_encrypt (u8 input[16], u8 output[16]) {
 
   expandKey (key, expandedKey);
 
-  for (int i = 1; i < 10; i++) {
+  for (int i = 0; i < 9; i++) {
     shiftRows (input); 
-    shiftRows (expandedKey + 16*(i-1));
+    shiftRows (expandedKey + 16*i);
 
     for (int j = 0; j < 16; j++) {
-      input[j] = tbox[i-1][j][input[j]];
+      input[j] = tboxes[i][j][input[j]];
     }
     mixColumns (input);  
   }
-
+  
+  for (int j = 0; j < 16; j++) {
+    input[j] = tboxes[9][j][input[j]];
+  }
   for (int i = 0; i < 16; i++)
     output[i] = input[i];
 

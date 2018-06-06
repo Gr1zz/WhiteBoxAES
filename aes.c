@@ -45,10 +45,10 @@ return p;
 void mixColumns (u8 state[16]) {
   u8 output[16];
   for (int i = 0; i < 4; i++) {
-    output[4*i] = gMul(2, state[4*i]) ^ gMul(3, state[4*i+1]) ^ state[4*i+2] ^ state[4*i+3];
-    output[4*i+1] = state[4*i] ^ gMul(2, state[4*i+1]) ^ gMul(3, state[4*i+2]) ^ state[4*i+3];
-    output[4*i+2] = state[4*i] ^ state[4*i+1] ^ gMul(2, state[4*i+2]) ^ gMul(3, state[4*i+3]);
-    output[4*i+3] = gMul(3, state[4*i]) ^ state[4*i+1] ^ state[4*i+2] ^ gMul(2, state[4*i+3]);
+    output[4 * i] = gMul(2, state[4 * i]) ^ gMul(3, state[4 * i+1]) ^ state[4 * i+2] ^ state[4 * i+3];
+    output[4 * i+1] = state[4 * i] ^ gMul(2, state[4 * i+1]) ^ gMul(3, state[4 * i+2]) ^ state[4 * i+3];
+    output[4 * i+2] = state[4 * i] ^ state[4 * i+1] ^ gMul(2, state[4 * i+2]) ^ gMul(3, state[4 * i+3]);
+    output[4 * i+3] = gMul(3, state[4 * i]) ^ state[4 * i+1] ^ state[4 * i+2] ^ gMul(2, state[4 * i+3]);
   }
   memcpy(state, output, sizeof(output));
 }
@@ -92,10 +92,10 @@ void aes_128_encrypt (u8 input[16], u8 output[16]) {
 
   expandKey (key, expandedKey);
 
-  for (int i = 1; i < 10; i++) {
+  for (int i = 0; i < 9; i++) {
     shiftRows (input); 
-    shiftRows (expandedKey+16*(i-1));
-    addRoundKey (input, expandedKey + 16*(i-1));
+    shiftRows (expandedKey+16*i);
+    addRoundKey (input, expandedKey + 16*i);
     subBytes (input);
     mixColumns (input);  
   }
@@ -108,35 +108,4 @@ void aes_128_encrypt (u8 input[16], u8 output[16]) {
   for (int i = 0; i < 16; i++)
     output[i] = input[i];
 
-}
-
-void aes_128_table_encrypt (u8 input[16], u8 output[16]) {
-  u8 expandedKey[176];
-  u8 key[16] = "Thats my Kung Fu";
-
-  expandKey (key, expandedKey);
-
-  for (int i = 1; i < 10; i++) {
-    shiftRows (input); 
-    shiftRows (expandedKey + 16*(i-1));
-
-    for (int j = 0; j < 16; j++) {
-      input[j] = tbox[i-1][j][input[j]];
-    }
-
-    mixColumns (input);  
-  }
-}
-
-int main(void) {
-  // your code goes here
-  u32 lol;
-  u8 out[16];
-  u8 in[16] = "Two One Nine Two";
-
-  printState(in);
-  genTables();
-  aes_128_encrypt(in, out);
-  printState(out);
-  return EXIT_SUCCESS;
 }
