@@ -9,7 +9,7 @@ void printState (u8 in[16]) {
 
 void subBytes (u8 state[16]) {
   for (int i = 0; i < 16; i++)
-    state[i] = sBox[state[i]];
+    state[i] = SBox[state[i]];
 }
 
 
@@ -43,14 +43,15 @@ u8 gMul (u8 a, u8 b) {
 return p;
 }
 void mixColumns (u8 state[16]) {
-  u8 output[16];
+  u8 out[16];
   for (int i = 0; i < 4; i++) {
-    output[4 * i] = gMul(2, state[4 * i]) ^ gMul(3, state[4 * i+1]) ^ state[4 * i+2] ^ state[4 * i+3];
-    output[4 * i+1] = state[4 * i] ^ gMul(2, state[4 * i+1]) ^ gMul(3, state[4 * i+2]) ^ state[4 * i+3];
-    output[4 * i+2] = state[4 * i] ^ state[4 * i+1] ^ gMul(2, state[4 * i+2]) ^ gMul(3, state[4 * i+3]);
-    output[4 * i+3] = gMul(3, state[4 * i]) ^ state[4 * i+1] ^ state[4 * i+2] ^ gMul(2, state[4 * i+3]);
+    out[4*i] = gMul(2, state[4*i]) ^ gMul(3, state[4*i + 1]) ^ state[4*i + 2] ^ state[4*i + 3];
+    out[4*i + 1] = state[4*i] ^ gMul(2, state[4*i + 1]) ^ gMul(3, state[4*i + 2]) ^ state[4*i + 3];
+    out[4*i + 2] = state[4*i] ^ state[4*i + 1] ^ gMul(2, state[4*i + 2]) ^ gMul(3, state[4*i + 3]);
+    out[4*i + 3] = gMul(3, state[4*i]) ^ state[4*i+1] ^ state[4*i + 2] ^ gMul(2, state[4*i + 3]);
   }
-  memcpy(state, output, sizeof(output));
+  
+  memcpy(state, out, sizeof(out));
 }
 
 void expandKey (u8 key[16], u8 expandedKey[176]) {
@@ -72,10 +73,10 @@ void expandKey (u8 key[16], u8 expandedKey[176]) {
 
     if (i % 4 == 0) {
         int k = tmp[0];
-        tmp[0] = sBox[tmp[1]] ^ rCon[i/4];
-        tmp[1] = sBox[tmp[2]];
-        tmp[2] = sBox[tmp[3]];
-        tmp[3] = sBox[k];
+        tmp[0] = SBox[tmp[1]] ^ rCon[i/4];
+        tmp[1] = SBox[tmp[2]];
+        tmp[2] = SBox[tmp[3]];
+        tmp[3] = SBox[k];
 
     }
     expandedKey[4*i] = expandedKey[4*(i-4)] ^ tmp[0];
@@ -88,7 +89,8 @@ void expandKey (u8 key[16], u8 expandedKey[176]) {
 
 void aes_128_encrypt (u8 input[16], u8 output[16]) {
   u8 expandedKey[176];
-  u8 key[16] = "Thats my Kung Fu";
+  u8 key[16] = {0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c};
+  u8 key2[16] = "0vercl0k@doare-e";
 
   expandKey (key, expandedKey);
 
@@ -97,8 +99,12 @@ void aes_128_encrypt (u8 input[16], u8 output[16]) {
     shiftRows (expandedKey+16*i);
     addRoundKey (input, expandedKey + 16*i);
     subBytes (input);
-    mixColumns (input);  
+
+    printf("i=%d\n", i);
+    mixColumns (input);
+
   }
+
   shiftRows (input);
   shiftRows (expandedKey + 144);
   addRoundKey (input, expandedKey + 144);
