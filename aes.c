@@ -1,5 +1,29 @@
 #include "aes.h"
 
+void initialize_aes_sbox(u8 sbox[256]) {
+  u8 p = 1, q = 1;
+  
+  /* loop invariant: p * q == 1 in the Galois field */
+  do {
+    /* multiply p by 3 */
+    p = p ^ (p << 1) ^ (p & 0x80 ? 0x1B : 0);
+
+    /* divide q by 3 (equals multiplication by 0xf6) */
+    q ^= q << 1;
+    q ^= q << 2;
+    q ^= q << 4;
+    q ^= q & 0x80 ? 0x09 : 0;
+
+    /* compute the affine transformation */
+    u8 xformed = q ^ ROTL8(q, 1) ^ ROTL8(q, 2) ^ ROTL8(q, 3) ^ ROTL8(q, 4);
+
+    sbox[p] = xformed ^ 0x63;
+  } while (p != 1);
+
+  /* 0 is a special case since it has no inverse */
+  sbox[0] = 0x63;
+}
+
 void printState (u8 in[16]) {
   for(int i=0; i < 4; i++) {
     printf("%.2X %.2X %.2X %.2X\n", in[i], in[i+4], in[i+8], in[i+12]);
@@ -89,18 +113,16 @@ void expandKey (u8 key[16], u8 expandedKey[176]) {
 
 void aes_128_encrypt (u8 input[16], u8 output[16]) {
   u8 expandedKey[176];
-  u8 key[16] = {0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c};
-  u8 key2[16] = "0vercl0k@doare-e";
+  u8 key[16] = {0};
 
   expandKey (key, expandedKey);
 
   for (int i = 0; i < 9; i++) {
+
     shiftRows (input); 
     shiftRows (expandedKey+16*i);
     addRoundKey (input, expandedKey + 16*i);
     subBytes (input);
-
-    printf("i=%d\n", i);
     mixColumns (input);
 
   }

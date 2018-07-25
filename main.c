@@ -11,13 +11,15 @@
 
 
 void printstate(unsigned char * in){
-        for(int i=0; i < 16; i++) {
+        for(int i = 0; i < 16; i++) {
                 printf("%.2X", in[i]);
 
         }
         printf("\n");
+
         return;
 }
+
 char ascii2hex(char in){
     char out;
 
@@ -33,7 +35,7 @@ char ascii2hex(char in){
     return out;
 }
 
-void asciiStr2hex (char * in, char * out, unsigned int len){
+void asciiStr2hex (char * in, char * out, int len){
     int j = 0;
     for (int i = 0; i < len; i += 2)
         out[j++]  = (ascii2hex(in[i ]) << 4) +  ascii2hex(in[i+1]);

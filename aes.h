@@ -3,9 +3,15 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <time.h>
+
+#define ROTL8(x,shift) ((u8) ((x) << (shift)) | ((x) >> (8 - (shift))))
 
 typedef unsigned char  u8;
 typedef unsigned int   u32;
+
+u8 sbox[256];
 
 static const u8 SBox[256] = {
   // 0     1     2     3     4     5     6     7     8     9     A     B     C     D     E     F
