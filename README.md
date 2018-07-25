@@ -1,13 +1,11 @@
 # WhiteBox AES
-============
 
 This is a basic implementation of [Chow et al's][1] scheme, following [Muir's][2] tutorial.
 
 [1]: https://www.cs.colorado.edu/~jrblack/class/csci7000/s03/project/oorschot-whitebox.pdf
 [2]: https://eprint.iacr.org/2013/104.pdf
 
-How to use
------------
+## How to use
 
 * **aes.c** and **aes.h** implement the standard aes encryption
 
@@ -27,7 +25,6 @@ Then you can compile the whitebox:
     $ ./whitebox <input>
 
  
-To Do
-------
+## To Do
 
 * Find a way to pass encodings through the non-linear sbox
